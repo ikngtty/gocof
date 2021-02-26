@@ -1,0 +1,3 @@
+# gocof
+
+Go code fetcher
