@@ -53,6 +53,12 @@ func Execute(dstPath, pkgName string) {
 	defer dstFileIO.Close()
 
 	for _, srcPkg := range srcPkgs {
+		_, err := dstFileIO.Write([]byte(fmt.Sprintf("\n// package %s\n\n", pkgName)))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
 		for _, srcFile := range srcPkg.Files {
 			astutil.Apply(srcFile, nil, func(cur *astutil.Cursor) bool {
 				decl, ok := cur.Node().(*ast.GenDecl)
