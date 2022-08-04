@@ -61,13 +61,7 @@ func Execute(dstPath, pkgName string) {
 
 		for _, srcFile := range srcPkg.Files {
 			astutil.Apply(srcFile, nil, func(cur *astutil.Cursor) bool {
-				decl, ok := cur.Node().(*ast.GenDecl)
-				if !ok {
-					return true
-				}
-				if decl.Tok == token.IMPORT {
-					cur.Delete()
-				}
+				deleteImport(cur)
 				return true
 			})
 
@@ -97,4 +91,16 @@ func getGocofDirPath() string {
 
 func getSourceDirFilePath() string {
 	return path.Join(getGocofDirPath(), "source-dir")
+}
+
+func deleteImport(cur *astutil.Cursor) bool {
+	decl, ok := cur.Node().(*ast.GenDecl)
+	if !ok {
+		return false
+	}
+	if decl.Tok != token.IMPORT {
+		return false
+	}
+	cur.Delete()
+	return true
 }
