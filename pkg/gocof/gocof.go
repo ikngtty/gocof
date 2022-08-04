@@ -60,8 +60,21 @@ func Execute(dstPath, pkgName string) {
 		}
 
 		for _, srcFile := range srcPkg.Files {
+			relativeImportIdentNames := make([]string, 0)
+			for _, imp := range srcFile.Imports {
+				importPath := strings.Trim(imp.Path.Value, "\"")
+				importPathItems := strings.Split(importPath, "/")
+				if len(importPathItems) > 3 {
+					identName := importPathItems[len(importPathItems)-1]
+					relativeImportIdentNames = append(relativeImportIdentNames, identName)
+				}
+			}
+
 			astutil.Apply(srcFile, nil, func(cur *astutil.Cursor) bool {
-				deleteImport(cur)
+				if deleteImport(cur) {
+					return true
+				}
+				deleteRelativeImportIdent(relativeImportIdentNames, cur)
 				return true
 			})
 
@@ -103,4 +116,22 @@ func deleteImport(cur *astutil.Cursor) bool {
 	}
 	cur.Delete()
 	return true
+}
+
+func deleteRelativeImportIdent(relativeImportIdentNames []string, cur *astutil.Cursor) bool {
+	selector, ok := cur.Node().(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := selector.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	for _, relativeImportIdentName := range relativeImportIdentNames {
+		if ident.Name == relativeImportIdentName {
+			cur.Replace(selector.Sel)
+			return true
+		}
+	}
+	return false
 }
