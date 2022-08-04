@@ -8,12 +8,34 @@ import (
 	"go/token"
 	"io/fs"
 	"os"
+	"path"
 	"strings"
 
 	"golang.org/x/tools/go/ast/astutil"
 )
 
-func Execute(dstPath, srcPath string) {
+func SetSourceDir(dirPath string) {
+	err := os.MkdirAll(getGocofDirPath(), 0777)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	err = os.WriteFile(getSourceDirFilePath(), []byte(dirPath), 0664)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func Execute(dstPath, pkgName string) {
+	sourceDir, err := os.ReadFile(getSourceDirFilePath())
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	srcPath := path.Join(string(sourceDir), pkgName)
+
 	srcFset := token.NewFileSet()
 	srcPkgs, err := parser.ParseDir(srcFset, srcPath, func(fi fs.FileInfo) bool {
 		return !strings.HasSuffix(fi.Name(), "_test.go")
@@ -55,4 +77,18 @@ func Execute(dstPath, srcPath string) {
 			}
 		}
 	}
+}
+
+func getGocofDirPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return path.Join(home, ".gocof")
+}
+
+func getSourceDirFilePath() string {
+	return path.Join(getGocofDirPath(), "source-dir")
 }
